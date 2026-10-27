@@ -1,1 +1,46 @@
 
+
+name: Compilar Xuper TV
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "*.zip"
+      - ".github/workflows/android.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar proyecto
+        uses: actions/checkout@v4
+
+      - name: Preparar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Extraer proyecto
+        run: |
+          mkdir -p source
+          ZIP=$(find . -maxdepth 1 -name '*.zip' | head -n 1)
+          test -n "$ZIP"
+          unzip -q "$ZIP" -d source
+
+      - name: Compilar APK
+        run: |
+          GRADLEW=$(find source -type f -name gradlew | head -n 1)
+          test -n "$GRADLEW"
+          cd "$(dirname "$GRADLEW")"
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: XuperTV-APK
+          path: source/**/build/outputs/apk/**/*.apk
+          if-no-files-found: error
